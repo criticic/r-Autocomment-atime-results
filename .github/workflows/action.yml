@@ -38,4 +38,10 @@ steps:
     - name: PR comment with file
       uses: thollander/actions-comment-pull-request@v2
       with:
-        filePath: ./plot.png        
+        filePath: ./plot.png
+
+    - name: upload-artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: plot
+        path: ./plot.png  
