@@ -1,1 +1,9 @@
 name: Autocomment articfact link (atime-based regression analysis plot) on PRs
+
+on:
+  pull_request:
+    branches:
+      - '*'
+    types:
+      - opened
+      - synchronize
