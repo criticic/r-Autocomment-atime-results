@@ -29,4 +29,4 @@ steps:
 
     - name: Install dependencies
       run: |
-        Rscript -e 'install.packages(c("ggplot2", "devtools", "directlabels", "atime"))'
+        Rscript -e 'install.packages(c("ggplot2", "devtools", "directlabels"))'
