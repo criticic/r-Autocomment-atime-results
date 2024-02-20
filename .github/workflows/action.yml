@@ -11,6 +11,7 @@ on:
 jobs:
   comment:
     runs-on: ubuntu-latest
+    container: ghcr.io/iterative/cml:0-dvc2-base1
 
 steps:
     - name: Checkout
@@ -31,17 +32,11 @@ steps:
       run: |
         Rscript -e 'install.packages(c("ggplot2", "devtools", "directlabels"))'
 
-    - name: Generate plot
+    - name: Run R script, generate plot, and push it on the PR thread as a GH-bot comment
+      env: 
+        repo_token: ${{ secrets.GITHUB_TOKEN }} 
       run: |
+        # Change the R code below in a pull request to see the resultant plot you want as a comment in the PR thread:
         Rscript -e 'library(ggplot2); ggplot(diamonds) + geom_point(aes(x = carat, y = price, color = cut)) + geom_smooth(aes(x = carat, y = price, color = cut)); ggsave(filename = 'plot.png', plot = last_plot())'
-
-    - name: PR comment with file
-      uses: thollander/actions-comment-pull-request@v2
-      with:
-        filePath: ./plot.png
-
-    - name: upload-artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: plot
-        path: ./plot.png  
+        echo "![plot](./plot.png)" >> report.md
+        cml comment create report.md
