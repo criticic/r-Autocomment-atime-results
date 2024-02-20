@@ -31,13 +31,19 @@ steps:
       run: |
         Rscript -e 'install.packages(c("ggplot2", "devtools", "directlabels"))'
 
+    - name: Generate plot
+      run: |
+        Rscript -e 'library(ggplot2); ggplot(diamonds) + geom_point(aes(x = carat, y = price, color = cut)) + geom_smooth(aes(x = carat, y = price, color = cut)); ggsave(filename = 'plot.png', plot = last_plot())'
+
     - name: Comment on PR
       uses: actions/github-script@v6
       with:
         script: |
+          const fs = require('fs');
+          const plotData = fs.readFileSync('plot.png', 'base64');
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: 'Test message'
-          })
+            body: '![Plot](data:image/png;base64,' + plotData + ')'
+          })  
