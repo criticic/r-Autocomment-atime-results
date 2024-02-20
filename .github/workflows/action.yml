@@ -15,3 +15,9 @@ jobs:
 steps:
     - name: Checkout
       uses: actions/checkout@v2
+
+    - name: Collect PR identifier
+      run: |
+        PR_SHA="${{ github.event.pull_request.head.sha }}"
+        echo "PR_SHA=${PR_SHA}" >> $GITHUB_ENV
+      shell: bash
