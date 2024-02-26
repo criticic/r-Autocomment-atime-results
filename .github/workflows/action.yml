@@ -22,15 +22,13 @@ jobs:
       with:
         use-public-rspm: true
 
-    - name: Install dependencies
+    - name: Install R dependencies
       run: |
         Rscript -e 'install.packages(c("ggplot2", "devtools", "directlabels", "remotes"))'
 
-    - name: Run R script, generate plot, and push it on the PR thread as a GH-bot comment
-      env: 
-        repo_token: ${{ secrets.GITHUB_TOKEN }} 
+    - name: Setup system dependencies
+      env:
+        GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        R -e 'source("plotGenerator.r")'
-        echo "![plot](./plot.png)" >> report.md
-        echo "\nGenerated for ${{ github.event.pull_request.head.sha }}" >> report.md
-        cml comment create report.md
+        sudo apt-get update -y
+        sudo apt-get install -y libgit2-dev
