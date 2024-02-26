@@ -43,3 +43,12 @@ jobs:
         git clone https://github.com/Anirban166/data.table.git
         R -e 'remotes::install_github("tdhock/atime")'
         R -e 'library(atime); library(ggplot2); library(data.table); atime::atime_pkg("data.table")'
+
+    - name: Push generated plots on the PR thread as a GH-bot comment
+      env: 
+        repo_token: ${{ secrets.GITHUB_TOKEN }} 
+      run: |      
+        echo "![plotOne](./data.table/inst/atime/shallow.4440.png)" >> report.md
+        echo "![plotTwo](./data.table/inst/atime/tests_all_facet.png)" >> report.md
+        echo "\nGenerated via commit ${{ github.event.pull_request.head.sha }}" >> report.md
+        cml comment create report.md         
