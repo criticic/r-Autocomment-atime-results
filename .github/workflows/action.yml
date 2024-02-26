@@ -36,3 +36,4 @@ jobs:
         cd git2r && make install
         cd ..
         git clone https://github.com/Anirban166/data.table.git
+        R -e 'remotes::install_github("tdhock/atime")'
