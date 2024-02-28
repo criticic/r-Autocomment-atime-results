@@ -48,7 +48,6 @@ jobs:
       env: 
         repo_token: ${{ secrets.GITHUB_TOKEN }} 
       run: |      
-        echo "![plotOne](./data.table/inst/atime/shallow.4440.png)" >> report.md
-        echo "![plotTwo](./data.table/inst/atime/tests_all_facet.png)" >> report.md
+        echo "![Comparison Plot](./data.table/inst/atime/tests_all_facet.png)" >> report.md
         echo "\nGenerated via commit ${{ github.event.pull_request.head.sha }}" >> report.md
         cml comment create report.md         
