@@ -45,9 +45,15 @@ jobs:
         R -e 'library(atime); library(ggplot2); library(data.table); atime::atime_pkg("data.table")'
 
     - name: Push generated plots on the PR thread as a GH-bot comment
-      env: 
-        repo_token: ${{ secrets.GITHUB_TOKEN }} 
-      run: |      
+      env:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+      run: |
         echo "![Comparison Plot](./data.table/inst/atime/tests_all_facet.png)" >> report.md
         echo "\nGenerated via commit ${{ github.event.pull_request.head.sha }}" >> report.md
-        cml comment create report.md         
+        cml comment create report.md
+
+    - name: Upload results
+      uses: actions/upload-artifact@v3
+      with:
+        name: atime-results
+        path: data.table/inst/atime/
