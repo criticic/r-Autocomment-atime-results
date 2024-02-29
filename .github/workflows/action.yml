@@ -46,7 +46,8 @@ jobs:
         R -e 'library(atime); library(ggplot2); library(data.table); atime::atime_pkg("data.table")'
 
     - name: Upload results
-      uses: actions/upload-artifact@v3
+      id: artifact-upload-step
+      uses: actions/upload-artifact@v4
       with:
         name: atime-results
         path: data.table/inst/atime/
