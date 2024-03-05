@@ -43,7 +43,7 @@ jobs:
       run: |
         git clone https://github.com/Anirban166/data.table.git
         R -e 'remotes::install_github("tdhock/atime")'
-        R -e 'library(atime); library(ggplot2); library(data.table); atime::atime_pkg("data.table")'
+        R -e 'atime::atime_pkg("data.table")'
 
     - name: Upload results
       id: artifact-upload-step
