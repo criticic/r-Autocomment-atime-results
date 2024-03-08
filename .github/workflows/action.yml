@@ -23,15 +23,12 @@ jobs:
       with:
         use-public-rspm: true
 
-    - name: Set up required system dependencies (libgit2 and git2r)
+    - name: Set up the required system dependency libgit2
       env:
         GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       run: |
         sudo apt-get update -y
         sudo apt-get install -y libgit2-dev
-        git clone https://github.com/ropensci/git2r.git
-        cd git2r && make install
-        cd ..
 
     - name: Install atime and initiate magic
       env:
