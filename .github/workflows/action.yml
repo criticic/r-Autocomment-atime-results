@@ -37,7 +37,7 @@ jobs:
         cd git2r && make install
         cd ..
 
-    - name: Set up R packages composing the test infrastructure (atime + customized data.table) and initiate magic  
+    - name: Install atime and initiate magic  
       env:
         GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -52,7 +52,7 @@ jobs:
         name: atime-results
         path: data.table/inst/atime/
 
-    - name: Push generated plots with relevant information on the PR thread as a GH-bot comment
+    - name: Push generated plot along with relevant information on the PR thread as a GH-bot comment
       env:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
       run: |
