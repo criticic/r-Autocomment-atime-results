@@ -69,5 +69,5 @@ jobs:
         echo "![Comparison Plot](./data.table/inst/atime/tests_all_facet.png)" >> report.md
         echo "\nGenerated via commit ${{ github.event.pull_request.head.sha }}" >> report.md
         echo "\nDownload link for the artifact containing the test results: [↓ atime-results.zip](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }})" >> report.md
-        echo "\nIt took $((ATIME_STEP_RUNTIME%3600/60)) minutes and $((ATIME_STEP_RUNTIME%60)) seconds to install \`atime\` and run \`atime_pkg\` on two tests." >> report.md
+        echo "\nTime taken to install \`atime\` and run \`atime_pkg\` the test(s): $((ATIME_STEP_RUNTIME%3600/60)) minutes and $((ATIME_STEP_RUNTIME%60)) seconds" >> report.md
         cml comment update report.md
