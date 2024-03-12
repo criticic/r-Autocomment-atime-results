@@ -49,8 +49,7 @@ jobs:
         GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       run: |
         start=`date +%s`
-        R -e 'install.packages("atime", dependencies = TRUE)'
-        R -e 'atime::atime_pkg(Sys.getenv("GITHUB_WORKSPACE"))'
+        R -e 'r = getOption("repos"); r["CRAN"] = "http://cran.us.r-project.org"; options(repos = r); install.packages("atime", dependencies = TRUE); atime::atime_pkg(Sys.getenv("GITHUB_WORKSPACE"))'
         end=`date +%s`
         runtime=$((end-start))
         echo "ATIME_STEP_RUNTIME=$((end-start))" >> $GITHUB_ENV
@@ -69,5 +68,5 @@ jobs:
         echo "![Comparison Plot](./data.table/inst/atime/tests_all_facet.png)" >> report.md
         echo "\nGenerated via commit ${{ github.event.pull_request.head.sha }}" >> report.md
         echo "\nDownload link for the artifact containing the test results: [↓ atime-results.zip](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }})" >> report.md
-        echo "\nTime taken to install \`atime\` and run \`atime_pkg\` the test(s): $((ATIME_STEP_RUNTIME%3600/60)) minutes and $((ATIME_STEP_RUNTIME%60)) seconds" >> report.md
+        echo "\nTime taken to install \`atime\` and run \`atime_pkg\` on the test(s): $((ATIME_STEP_RUNTIME%3600/60)) minutes and $((ATIME_STEP_RUNTIME%60)) seconds" >> report.md
         cml comment update report.md
