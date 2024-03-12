@@ -26,10 +26,13 @@ jobs:
       run: |
         git config --global --add safe.directory /__w/data.table/data.table
 
-    - name: git-switch
+    - name: Manage refs
       run: |
         git switch "${GITHUB_BASE_REF}"
         git switch "${GITHUB_HEAD_REF}"
+        git for-each-ref --format="%(refname)" | while read ref; do
+          git show-ref --quiet --verify $ref 2>/dev/null || git update-ref -d $ref
+        done
       shell: bash
 
     - name: R Setup
