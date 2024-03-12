@@ -1,4 +1,9 @@
-name: Autocomment atime-based performance regression analysis on PRs
+name: 'Autocomment-atime-results'
+author: 'Anirban Chetia'
+description: 'Autocomment atime-based performance regression analysis on PRs'
+branding:
+  icon: 'message-square'
+  color: 'gray-dark'
 
 on:
   pull_request:
@@ -20,7 +25,7 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: safe-dir-check
+    - name: Safe directory exception
       env:
         GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       run: |
