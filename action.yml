@@ -15,7 +15,7 @@ runs:
 
     - name: Safe directory exception
       run: |
-        git config --global --add safe.directory "/__w/${GITHUB_REPOSITORY}/${GITHUB_REPOSITORY}"
+        git config --global --add safe.directory '*'
       shell: bash
 
     - name: Manage refs
