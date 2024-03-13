@@ -13,6 +13,11 @@ runs:
       with:
         fetch-depth: 0
 
+    - name: Safe directory exception
+      run: |
+        git config --global --add safe.directory /__w/${GITHUB_REPOSITORY}/${GITHUB_REPOSITORY}
+      shell: bash
+
     - name: Manage refs
       run: |
         git switch "${GITHUB_BASE_REF}"
