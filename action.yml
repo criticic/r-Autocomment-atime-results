@@ -16,6 +16,7 @@ runs:
     - name: Safe directory exception
       run: |
         git config --global --add safe.directory /__w/data.table/data.table
+      shell: bash
 
     - name: Manage refs
       run: |
@@ -35,6 +36,7 @@ runs:
       run: |
         sudo apt-get update -y
         sudo apt-get install -y libgit2-dev
+      shell: bash  
 
     - name: Install atime and initiate magic
       run: |
@@ -43,6 +45,7 @@ runs:
         end=`date +%s`
         runtime=$((end-start))
         echo "ATIME_STEP_RUNTIME=$((end-start))" >> $GITHUB_ENV
+      shell: bash
 
     - name: Upload results
       id: artifact-upload-step
@@ -60,3 +63,4 @@ runs:
         echo "\nDownload link for the artifact containing the test results: [↓ atime-results.zip](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }})" >> report.md
         echo "\nTime taken to install \`atime\` and run \`atime_pkg\` on the test(s): $((ATIME_STEP_RUNTIME%3600/60)) minutes and $((ATIME_STEP_RUNTIME%60)) seconds" >> report.md
         cml comment update report.md
+      shell: bash
