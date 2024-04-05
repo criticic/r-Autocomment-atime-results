@@ -44,19 +44,11 @@ runs:
 
     - name: Install atime and initiate magic
       run: |
-        Rscript -e '
-          r = getOption("repos");
-          r["CRAN"] = "http://cran.us.r-project.org";
-          options(repos = r);
-          install.packages("atime", dependencies = TRUE);
-                   '
+        cp /github/home/.Rprofile .
+        echo "options(repos = c(CRAN = 'https://cloud.r-project.org'))" >> .Rprofile
+        Rscript -e 'install.packages("atime", dependencies = TRUE);'
         echo "END_SETUP_START_TESTS_TIME=$(date +%s)" >> $GITHUB_ENV
-
-        Rscript -e '
-          r = getOption("repos"); r["CRAN"] = "http://cran.us.r-project.org"; options(repos = r);
-          atime::atime_pkg(Sys.getenv("GITHUB_WORKSPACE"));
-                   '
-
+        Rscript -e 'atime::atime_pkg(Sys.getenv("GITHUB_WORKSPACE"));'
         echo "END_TESTS_TIME=$(date +%s)" >> $GITHUB_ENV
       shell: bash
 
