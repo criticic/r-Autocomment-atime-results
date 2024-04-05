@@ -22,13 +22,11 @@ runs:
         git config --global --add safe.directory '*'
       shell: bash
 
-    - name: Manage refs
+    # To ensure local branch references exist and can be found when using git2r::revparse_single: (for more information, please check https://github.com/Anirban166/Autocomment-atime-results/issues/33#issuecomment-2038431272 and the comments below that)
+    - name: Retrieve branch references
       run: |
         git switch "${GITHUB_BASE_REF}"
         git switch "${GITHUB_HEAD_REF}"
-        git for-each-ref --format="%(refname)" | while read ref; do
-          git show-ref --quiet --verify $ref 2>/dev/null || git update-ref -d $ref
-        done
       shell: bash
 
     - name: R Setup
