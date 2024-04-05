@@ -64,11 +64,22 @@ runs:
         SETUP_DURATION=$((END_SETUP_START_TESTS_TIME - START_SETUP_TIME))
         ATIME_TESTS_DURATION=$((END_TESTS_TIME - END_SETUP_START_TESTS_TIME))
 
+        formatTime() {
+            local totalSeconds=$1
+            if [ $totalSeconds -lt 0 ]; then
+                echo "Time calculation error: negative duration"
+                return
+            fi
+            local minutes=$((totalSeconds / 60))
+            local seconds=$((totalSeconds % 60))
+            echo "${minutes} minutes and ${seconds} seconds"
+        }
+        
         # Comment contents:
         echo "![Comparison Plot](./inst/atime/tests_all_facet.png)" >> report.md
         echo -e "\nGenerated via commit ${{ github.event.pull_request.head.sha }}" >> report.md
         echo -e "\nDownload link for the artifact containing the test results: [↓ atime-results.zip](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }})" >> report.md
-        echo "\nTime taken to finish the standard R installation steps: $((SETUP_DURATION%3600/60)) minutes and $((SETUP_DURATION%60)) seconds" >> report.md
-        echo "\nTime taken to run \`atime::atime_pkg\` on the tests: $((ATIME_TESTS_RUNTIME%3600/60)) minutes and $((ATIME_TESTS_RUNTIME%60)) seconds" >> report.md
+        echo "\nTime taken to finish the standard R installation steps: $(formatTime $SETUP_DURATION)" >> report.md
+        echo "\nTime taken to run \`atime::atime_pkg\` on the tests: $(formatTime $ATIME_TESTS_DURATION)" >> report.md
         cml comment update report.md
       shell: bash
