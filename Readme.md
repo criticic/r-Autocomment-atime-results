@@ -32,7 +32,7 @@ jobs:
       repo_token: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
     steps:
-      - uses: Anirban166/Autocomment-atime-results@v1.1.5
+      - uses: Anirban166/Autocomment-atime-results@v1.1.6
 ```
 Emplace the contents in `.github/workflows/<workflowName>.yml`. The example I provided above can be customized further as needed, as long as a few things are kept intact:
 - The workflow runs on a `pull_request` event

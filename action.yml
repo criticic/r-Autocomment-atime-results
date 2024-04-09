@@ -77,7 +77,7 @@ runs:
         echo "![Comparison Plot](./inst/atime/tests_all_facet.png)" >> report.md
         echo -e "\nGenerated via commit ${{ github.event.pull_request.head.sha }}" >> report.md
         echo -e "\nDownload link for the artifact containing the test results: [↓ atime-results.zip](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }})" >> report.md
-        echo "\nTime taken to finish the standard R installation steps: $(formatTime $SETUP_DURATION)" >> report.md
-        echo "\nTime taken to run \`atime::atime_pkg\` on the tests: $(formatTime $ATIME_TESTS_DURATION)" >> report.md
+        echo -e "\nTime taken to finish the standard R installation steps: $(formatTime $SETUP_DURATION)" >> report.md
+        echo -e "\nTime taken to run \`atime::atime_pkg\` on the tests: $(formatTime $ATIME_TESTS_DURATION)" >> report.md
         cml comment update report.md
       shell: bash
