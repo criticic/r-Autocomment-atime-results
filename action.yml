@@ -69,9 +69,13 @@ runs:
                 echo "Time calculation error: negative duration"
                 return
             fi
-            local minutes=$((totalSeconds / 60))
-            local seconds=$((totalSeconds % 60))
-            echo "${minutes} minutes and ${seconds} seconds"
+            if [ $totalSeconds -lt 60 ]; then
+                echo "${totalSeconds} seconds"
+            else
+                local minutes=$((totalSeconds / 60))
+                local seconds=$((totalSeconds % 60))
+                echo "${minutes} minutes and ${seconds} seconds"
+            fi
         }
         
         # Comment contents:
