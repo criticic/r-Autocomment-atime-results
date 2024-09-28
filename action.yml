@@ -61,7 +61,7 @@ runs:
       run: |
         R_SETUP_DURATION=$((END_SETUP_START_TESTS_TIME - START_SETUP_TIME))
         ATIME_TESTS_DURATION=$((END_TESTS_TIME - END_SETUP_START_TESTS_TIME))
-        VERSION_SETUP_DURATION=$(< ./.ci/atime/install_seconds.txt)
+        VERSION_SETUP_DURATION=$(cut -d '.' -f 1 ./.ci/atime/install_seconds.txt)
 
         formatTime() {
             local totalSeconds=$1
@@ -79,7 +79,7 @@ runs:
         echo -e "\nGenerated via commit ${{ github.event.pull_request.head.sha }}" >> report.md
         echo -e "\nDownload link for the artifact containing the test results: [↓ atime-results.zip](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }})" >> report.md
         echo -e "\nTime taken to execute the standard R installation steps: $(formatTime $R_SETUP_DURATION)" >> report.md
-        echo -e "\nTime taken to install different git versions of the R package: $(formatTime $VERSION_SETUP_DURATION)" >> report.md
+        echo -e "\nTime taken to install different git versions of the R package being tested: $(formatTime $VERSION_SETUP_DURATION)" >> report.md
         echo -e "\nTime taken to run \`atime::atime_pkg\` on the tests: $(formatTime $ATIME_TESTS_DURATION)" >> report.md
         cml comment update report.md
       shell: bash
