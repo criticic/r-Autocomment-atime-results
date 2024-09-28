@@ -7,7 +7,7 @@ Contents of the comment consist of:
 - A table enlisting:
   - The elapsed time from the job's start to the completion of the standard installation steps
   - The time it took to install the different git versions of the package being tested
-  - The time taken to run all the tests
+  - The time taken to run and plot all the tests
 
 To avoid flooding the pull request on every push to it, only one comment will exist in the PR thread at all times. After the initial comment generated from the first commit on the pull request branch, subsequent pushes will simply update the comment's body.
 
@@ -35,7 +35,7 @@ jobs:
       repo_token: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
     steps:
-      - uses: Anirban166/Autocomment-atime-results@v1.3.0
+      - uses: Anirban166/Autocomment-atime-results@v1.3.1
 ```
 Emplace the contents in `.github/workflows/<workflowName>.yml`. The example I provided above can be customized further as needed, as long as a few things are kept intact:
 - The workflow runs on a `pull_request` event
