@@ -86,6 +86,6 @@ runs:
         echo -e "|---|---|" >> report.md
         echo -e "| R setup and installing dependencies   | $(formatTime $R_SETUP_DURATION)       |" >> report.md
         echo -e "| Installing different package versions | $(formatTime $VERSION_SETUP_DURATION) |" >> report.md
-        echo -e "| Running \`atime::atime_pkg\` on tests | $(formatTime $ATIME_TESTS_DURATION)   |" >> report.md
+        echo -e "| Running and plotting the test cases   | $(formatTime $ATIME_TESTS_DURATION)   |" >> report.md
         cml comment update report.md
       shell: bash
