@@ -36,7 +36,6 @@ runs:
 
     - name: Set up the required system dependency libgit2
       run: |
-        sudo add-apt-repository ppa:git-core/ppa
         sudo apt-get update -y
         sudo apt-get install -y libgit2-dev
         dpkg -L libgit2-dev
