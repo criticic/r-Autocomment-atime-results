@@ -39,6 +39,8 @@ runs:
         sudo add-apt-repository ppa:git-core/ppa
         sudo apt-get update -y
         sudo apt-get install -y libgit2-dev
+        dpkg -L libgit2-dev
+        pkg-config --modversion libgit2
       shell: bash
 
     - name: Install required dependencies and initiate atime magic
