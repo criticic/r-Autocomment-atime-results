@@ -36,13 +36,11 @@ runs:
 
     - name: Set up the required system dependency libgit2
       run: |
-        sudo apt-get update -y
-        sudo apt-get install -y wget cmake pkg-config
-        wget https://github.com/libgit2/libgit2/archive/refs/tags/v1.6.4.tar.gz -O libgit2.tar.gz
-        tar -xzf libgit2.tar.gz
-        cd libgit2-1.6.4 && mkdir build && cd build
+        git clone --branch v1.6.4 --depth 1 https://github.com/libgit2/libgit2.git
+        cd libgit2 && mkdir build && cd build
         cmake .. -DCMAKE_INSTALL_PREFIX=/usr
         make && sudo make install
+        cd ../..
       shell: bash
 
     - name: Check libgit2 installation
