@@ -38,8 +38,13 @@ runs:
       run: |
         sudo apt-get update -y
         sudo apt-get install -y libgit2-dev
-        dpkg -L libgit2-dev
-        pkg-config --modversion libgit2
+      shell: bash
+
+    - name: Check libgit2 installation
+      run: |
+        find /usr -name 'libgit2*' -type d
+        pkg-config --libs libgit2
+        pkg-config --cflags libgit2
       shell: bash
 
     - name: Install required dependencies and initiate atime magic
