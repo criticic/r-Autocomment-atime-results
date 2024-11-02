@@ -19,12 +19,15 @@ name: Autocomment atime-based performance regression analysis on PRs
 
 on:
   pull_request:
-    branches:
-      - '*'
     types:
       - opened
       - reopened
       - synchronize
+    # Modify path filters as needed:
+    paths:
+      - 'R/**'
+      - 'src/**'
+      - '.ci/atime/**'
 
 jobs:
   comment:
@@ -33,9 +36,8 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       repo_token: ${{ secrets.GITHUB_TOKEN }}
-      R_KEEP_PKG_SOURCE: yes
     steps:
-      - uses: Anirban166/Autocomment-atime-results@v1.3.1
+      - uses: Anirban166/Autocomment-atime-results@v1.4.1
 ```
 Emplace the contents in `.github/workflows/<workflowName>.yml`. The example I provided above can be customized further as needed, as long as a few things are kept intact:
 - The workflow runs on a `pull_request` event
