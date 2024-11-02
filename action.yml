@@ -44,13 +44,6 @@ runs:
         cd ../..
       shell: bash
 
-    - name: Check libgit2 installation
-      run: |
-        find /usr -name 'libgit2*' -type d
-        pkg-config --libs libgit2
-        pkg-config --cflags libgit2
-      shell: bash
-
     - name: Install required dependencies and initiate atime magic
       run: |
         cp /github/home/.Rprofile .
