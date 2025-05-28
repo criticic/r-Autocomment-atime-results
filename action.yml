@@ -34,6 +34,9 @@ runs:
       with:
         use-public-rspm: true 
 
+    - name: Install R packages (DESCRIPTION-specified deps)
+      uses: r-lib/actions/setup-r-dependencies@v2
+
     - name: Set up the required system dependency libgit2
       run: |
         sudo apt-get update -y && sudo apt-get install -y cmake libssl-dev
