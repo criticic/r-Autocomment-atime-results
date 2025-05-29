@@ -2,6 +2,7 @@ A GitHub Action for R packages that runs `atime::atime_pkg` and comments the gen
 
 Contents of the comment consist of:
 - A plot comparing different versions<sup>1</sup> of the package on all the test cases (portrayed side-by-side) that are defined in the `.ci/atime/tests.R` file within the respository. <sup>1</sup>Versions include base (the target branch), HEAD (the PR/source branch), merge-base (their common ancestor), and CRAN (yup, your package needs to be there :).
+- Points regarding potential slowdowns in HEAD for applicable test cases.
 - The SHA for the commit that triggered the workflow (or as an end result, generated that comment) within the PR.
 - A download link to retrieve a zipped file containing the `atime`-generated results.
 - A table enlisting:
@@ -37,7 +38,7 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       repo_token: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: Anirban166/Autocomment-atime-results@v1.4.1
+      - uses: Anirban166/Autocomment-atime-results@v1.4.3
 ```
 Emplace the contents in `.github/workflows/<workflowName>.yml`. The example I provided above can be customized further as needed, as long as a few things are kept intact:
 - The workflow runs on a `pull_request` event
