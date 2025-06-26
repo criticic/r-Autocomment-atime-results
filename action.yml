@@ -5,6 +5,11 @@ branding:
   icon: 'message-square'
   color: 'gray-dark'
 
+inputs:
+  github-token:
+    description: 'GitHub token with write permissions to the repository'
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -25,8 +30,11 @@ runs:
     # To ensure local branch references exist and can be found when using git2r::revparse_single: (for more information, please check https://github.com/Anirban166/Autocomment-atime-results/issues/33#issuecomment-2038431272 and the comments below that)
     - name: Retrieve branch references
       run: |
-        git switch "${GITHUB_BASE_REF}"
-        git switch "${GITHUB_HEAD_REF}"
+        # Fetch PR head directly into a local branch using GitHub's pull request refs
+        git fetch origin pull/${{ github.event.pull_request.number }}/head:${{ github.head_ref }}
+        # Ensure base ref is also available locally and switch to head branch
+        git switch "${{ github.base_ref }}"
+        git switch "${{ github.head_ref }}"
       shell: bash
 
     - name: R Setup
@@ -34,10 +42,48 @@ runs:
       with:
         use-public-rspm: true 
 
-    - name: Install R packages (DESCRIPTION-specified deps)
-      uses: r-lib/actions/setup-r-dependencies@v2
+    - name: Get R library path
+      run: |
+        echo "R_LIB_PATH=$(Rscript -e 'cat(.libPaths()[1])')" >> $GITHUB_ENV
+      shell: bash
 
-    - name: Set up the required system dependency libgit2
+    - name: Cache R library
+      id: cache-r-lib
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.R_LIB_PATH }}
+        key: r-lib-${{ runner.os }}-${{ hashFiles('DESCRIPTION') }}
+        restore-keys: |
+          r-lib-${{ runner.os }}-${{ hashFiles('DESCRIPTION') }}
+          r-lib-${{ runner.os }}-
+
+    - name: Install R packages (DESCRIPTION-specified deps)
+      if: steps.cache-r-lib.outputs.cache-hit != 'true'
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        cache: false
+        extra-packages: |
+          atime
+          ggplot2
+          directlabels
+          cumstats=?ignore
+
+    - name: Cache libgit2
+      id: cache-libgit2
+      uses: actions/cache@v4
+      with:
+        path: |
+          /usr/local/lib/libgit2*
+          /usr/local/lib/pkgconfig/libgit2.pc
+          /usr/local/include/git2*
+          /usr/local/bin/git2
+        key: libgit2-${{ runner.os }}-v1.6.4
+        restore-keys: |
+          libgit2-${{ runner.os }}-v1.6
+          libgit2-${{ runner.os }}-
+
+    - name: Install libgit2
+      if: steps.cache-libgit2.outputs.cache-hit != 'true'
       run: |
         sudo apt-get update -y && sudo apt-get install -y cmake libssl-dev
         git clone --branch v1.6.4 --depth 1 https://github.com/libgit2/libgit2.git
@@ -45,13 +91,14 @@ runs:
         cmake .. -DCMAKE_INSTALL_PREFIX=/usr
         make && sudo make install
         cd ../..
+        sudo ldconfig # Refresh linker cache
       shell: bash
 
-    - name: Install required dependencies and initiate atime magic
+    - name: Run atime tests
       run: |
-        cp /github/home/.Rprofile .
+        mkdir -p ~/.R
+        echo "CFLAGS = -std=gnu99" >> ~/.R/Makevars
         echo "options(repos = c(CRAN = 'https://cloud.r-project.org'))" >> .Rprofile
-        Rscript -e 'install.packages(c("atime", "ggplot2", "directlabels"))'
         echo "END_SETUP_START_TESTS_TIME=$(date +%s)" >> $GITHUB_ENV
         Rscript -e 'atime::atime_pkg(Sys.getenv("GITHUB_WORKSPACE"), tests.dir = ".ci");'
         echo "END_TESTS_TIME=$(date +%s)" >> $GITHUB_ENV
@@ -64,7 +111,12 @@ runs:
         name: atime-results
         path: .ci/atime/
 
+    - name: Setup CML
+      uses: iterative/setup-cml@v2
+
     - name: Push generated plot along with relevant information on the PR thread as a GH-bot comment
+      env:
+        REPO_TOKEN: ${{ inputs.github-token }}
       run: |
         R_SETUP_DURATION=$((END_SETUP_START_TESTS_TIME - START_SETUP_TIME))
         VERSION_SETUP_DURATION=$(cut -d '.' -f 1 ./.ci/atime/install_seconds.txt)
