@@ -25,8 +25,11 @@ runs:
     # To ensure local branch references exist and can be found when using git2r::revparse_single: (for more information, please check https://github.com/Anirban166/Autocomment-atime-results/issues/33#issuecomment-2038431272 and the comments below that)
     - name: Retrieve branch references
       run: |
-        git switch "${GITHUB_BASE_REF}"
-        git switch "${GITHUB_HEAD_REF}"
+        # Fetch PR head directly into a local branch using GitHub's pull request refs
+        git fetch origin pull/${{ github.event.pull_request.number }}/head:${{ github.head_ref }}
+        # Ensure base ref is also available locally and switch to head branch
+        git switch "${ github.base_ref }"
+        git switch "${{ github.head_ref }}"
       shell: bash
 
     - name: R Setup
@@ -34,10 +37,66 @@ runs:
       with:
         use-public-rspm: true 
 
+    - name: Get R library path
+      run: |
+        echo "R_LIB_PATH=$(Rscript -e 'cat(.libPaths()[1])')" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Download R library cache
+      id: download-r-lib
+      uses: dawidd6/action-download-artifact@v10 
+      with:
+        name: r-lib-cache-${{ hashFiles('DESCRIPTION') }}
+        path: ${{ env.R_LIB_PATH }}
+        if_no_artifact_found: ignore
+
+    - name: Check for R library cache hit
+      id: rlib-hit
+      run: |
+        if [ -n "$(ls -A '${{ env.R_LIB_PATH }}' 2>/dev/null)" ]; then
+          echo "cache-hit=true" >> $GITHUB_ENV
+        else
+          echo "cache-hit=false" >> $GITHUB_ENV
+        fi
+      shell: bash
+
     - name: Install R packages (DESCRIPTION-specified deps)
       uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        cache: false
+        extra-packages: |
+          atime
+          ggplot2
+          directlabels
 
-    - name: Set up the required system dependency libgit2
+    - name: Download libgit2 artifact from main
+      id: download-libgit2
+      uses: dawidd6/action-download-artifact@v10
+      with:
+        name: libgit2-cache
+        path: /tmp
+        if_no_artifact_found: ignore
+
+    - name: Check for libgit2 cache hit
+      id: libgit2-hit
+      run: |
+        if [ -f /tmp/libgit2-cache.tar.gz ]; then
+          echo "libgit2-cache-hit=true" >> $GITHUB_ENV
+        else
+          echo "libgit2-cache-hit=false" >> $GITHUB_ENV
+        fi
+      shell: bash
+
+    - name: Restore libgit2 from artifact
+      if: env.libgit2-cache-hit == 'true'
+      run: |
+        echo "Restoring libgit2 from artifact..."
+        sudo tar -xzf /tmp/libgit2-cache.tar.gz -C /
+        sudo ldconfig
+      shell: bash
+
+    - name: Install libgit2
+      if: env.libgit2-cache-hit == 'false'
       run: |
         sudo apt-get update -y && sudo apt-get install -y cmake libssl-dev
         git clone --branch v1.6.4 --depth 1 https://github.com/libgit2/libgit2.git
@@ -45,24 +104,57 @@ runs:
         cmake .. -DCMAKE_INSTALL_PREFIX=/usr
         make && sudo make install
         cd ../..
+        echo "Creating libgit2 cache tarball..."
+        # Ensure target directory for tarball exists
+        mkdir -p /tmp
+        # Create cache tarball with all installed libgit2 files
+        sudo tar -czf /tmp/libgit2-cache.tar.gz \
+          /usr/lib/x86_64-linux-gnu/libgit2* \
+          /usr/lib/x86_64-linux-gnu/pkgconfig/libgit2.pc \
+          /usr/include/git2* \
+          /usr/bin/git2 2>/dev/null || true # Ignore errors if some paths don't exist
+        sudo ldconfig # Refresh linker cache
       shell: bash
 
-    - name: Install required dependencies and initiate atime magic
+    - name: Run atime tests
       run: |
-        cp /github/home/.Rprofile .
+        mkdir -p ~/.R
+        echo "CFLAGS = -std=gnu99" >> ~/.R/Makevars
         echo "options(repos = c(CRAN = 'https://cloud.r-project.org'))" >> .Rprofile
-        Rscript -e 'install.packages(c("atime", "ggplot2", "directlabels"))'
         echo "END_SETUP_START_TESTS_TIME=$(date +%s)" >> $GITHUB_ENV
         Rscript -e 'atime::atime_pkg(Sys.getenv("GITHUB_WORKSPACE"), tests.dir = ".ci");'
         echo "END_TESTS_TIME=$(date +%s)" >> $GITHUB_ENV
       shell: bash
 
-    - name: Upload results
-      id: artifact-upload-step
+    - name: Save timing data
+      run: |
+        mkdir -p timing
+        echo "$START_SETUP_TIME" > timing/start_setup.txt
+        echo "$END_SETUP_START_TESTS_TIME" > timing/end_setup.txt
+        echo "$END_TESTS_TIME" > timing/end_tests.txt
+      shell: bash
+
+    - name: Upload test results and timing
       uses: actions/upload-artifact@v4
       with:
         name: atime-results
-        path: .ci/atime/
+        path: |
+          .ci/atime/
+          timing/
+
+    - name: Upload libgit2 artifact
+      if: env.libgit2-cache-hit == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: libgit2-cache
+        path: /tmp/libgit2-cache.tar.gz
+
+    - name: Upload R library artifact
+      if: env.cache-hit == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: r-lib-cache-${{ hashFiles('DESCRIPTION') }}
+        path: ${{ env.R_LIB_PATH }}
 
     - name: Push generated plot along with relevant information on the PR thread as a GH-bot comment
       run: |
