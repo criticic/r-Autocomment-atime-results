@@ -9,6 +9,19 @@ inputs:
   github-token:
     description: 'GitHub token with write permissions to the repository'
     required: true
+  base-ref:
+    description: 'The base git ref (e.g., main, or a commit SHA) for comparison'
+    required: true
+  head-ref:
+    description: 'The head git ref (e.g., a feature branch, or a commit SHA) for comparison'
+    required: true
+  head-sha:
+    description: 'The specific commit SHA of the head ref'
+    required: true
+  pr-number:
+    description: 'The pull request number, if the trigger is a PR. Leave empty for other triggers.'
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -29,12 +42,13 @@ runs:
 
     # To ensure local branch references exist and can be found when using git2r::revparse_single: (for more information, please check https://github.com/Anirban166/Autocomment-atime-results/issues/33#issuecomment-2038431272 and the comments below that)
     - name: Retrieve branch references
+      if: inputs.pr-number != ''
       run: |
         # Fetch PR head directly into a local branch using GitHub's pull request refs
-        git fetch origin pull/${{ github.event.pull_request.number }}/head:${{ github.head_ref }}
+        git fetch origin pull/${{ inputs.pr-number }}/head:${{ inputs.head-ref }}
         # Ensure base ref is also available locally and switch to head branch
-        git switch "${{ github.base_ref }}"
-        git switch "${{ github.head_ref }}"
+        git switch "${{ inputs.base-ref }}"
+        git switch "${{ inputs.head-ref }}"
       shell: bash
 
     - name: R Setup
@@ -47,9 +61,9 @@ runs:
         echo "R_LIB_PATH=$(Rscript -e 'cat(.libPaths()[1])')" >> $GITHUB_ENV
       shell: bash
 
-    - name: Cache R library
-      id: cache-r-lib
-      uses: actions/cache@v4
+    - name: Restore cached R library
+      id: cache-r-lib-restore
+      uses: actions/cache/restore@v4
       with:
         path: ${{ env.R_LIB_PATH }}
         key: r-lib-${{ runner.os }}-${{ hashFiles('DESCRIPTION') }}
@@ -58,40 +72,49 @@ runs:
           r-lib-${{ runner.os }}-
 
     - name: Install R packages (DESCRIPTION-specified deps)
-      if: steps.cache-r-lib.outputs.cache-hit != 'true'
+      if: steps.cache-r-lib-restore.outputs.cache-hit != 'true'
       uses: r-lib/actions/setup-r-dependencies@v2
       with:
         cache: false
+        dependencies: '"hard"'
         extra-packages: |
           atime
           ggplot2
           directlabels
-          cumstats=?ignore
 
-    - name: Cache libgit2
-      id: cache-libgit2
-      uses: actions/cache@v4
+    - name: Set libgit2 install path
+      run: |
+        echo "LIBGIT2_INSTALL_DIR=$HOME/libgit2-install" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Restore cached libgit2
+      id: cache-libgit2-restore
+      uses: actions/cache/restore@v4
       with:
-        path: |
-          /usr/local/lib/libgit2*
-          /usr/local/lib/pkgconfig/libgit2.pc
-          /usr/local/include/git2*
-          /usr/local/bin/git2
+        path: ${{ env.LIBGIT2_INSTALL_DIR }}
         key: libgit2-${{ runner.os }}-v1.7.2
         restore-keys: |
           libgit2-${{ runner.os }}-v1.7
           libgit2-${{ runner.os }}-
 
     - name: Install libgit2
-      if: steps.cache-libgit2.outputs.cache-hit != 'true'
+      if: steps.cache-libgit2-restore.outputs.cache-hit != 'true'
       run: |
         sudo apt-get update -y && sudo apt-get install -y cmake libssl-dev
         git clone --branch v1.7.2 --depth 1 https://github.com/libgit2/libgit2.git
         cd libgit2 && mkdir build && cd build
-        cmake .. -DCMAKE_INSTALL_PREFIX=/usr
-        make && sudo make install
+        cmake .. -DCMAKE_INSTALL_PREFIX=$LIBGIT2_INSTALL_DIR
+        make && make install
         cd ../..
-        sudo ldconfig # Refresh linker cache
+      shell: bash
+
+    - name: Setup libgit2 environment
+      run: |
+        echo "PKG_CONFIG_PATH=$LIBGIT2_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=$LIBGIT2_INSTALL_DIR/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+        echo "C_INCLUDE_PATH=$LIBGIT2_INSTALL_DIR/include:$C_INCLUDE_PATH" >> $GITHUB_ENV
+        echo "CPLUS_INCLUDE_PATH=$LIBGIT2_INSTALL_DIR/include:$CPLUS_INCLUDE_PATH" >> $GITHUB_ENV
+        echo "PATH=$LIBGIT2_INSTALL_DIR/bin:$PATH" >> $GITHUB_ENV
       shell: bash
 
     - name: Run atime tests
@@ -111,12 +134,8 @@ runs:
         name: atime-results
         path: .ci/atime/
 
-    - name: Setup CML
-      uses: iterative/setup-cml@v2
-
-    - name: Push generated plot along with relevant information on the PR thread as a GH-bot comment
-      env:
-        REPO_TOKEN: ${{ inputs.github-token }}
+    - name: Generate report markdown
+      id: generate-report
       run: |
         R_SETUP_DURATION=$((END_SETUP_START_TESTS_TIME - START_SETUP_TIME))
         VERSION_SETUP_DURATION=$(cut -d '.' -f 1 ./.ci/atime/install_seconds.txt)
@@ -140,12 +159,29 @@ runs:
         # Comment contents:
         cat .ci/atime/HEAD_issues.md >> report.md
         echo -e "\n[![Comparison Plot](./.ci/atime/tests_preview_facet.png)](./.ci/atime/tests_all_facet.png)" >> report.md
-        echo -e "\nGenerated via commit ${{ github.event.pull_request.head.sha }}" >> report.md
+        echo -e "\nGenerated via commit ${{ inputs.head-sha }}" >> report.md
         echo -e "\nDownload link for the artifact containing the test results: [↓ atime-results.zip](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }})" >> report.md
         echo -e "\n| Task | Duration |" >> report.md
         echo -e "|---|---|" >> report.md
         echo -e "| R setup and installing dependencies   | $(formatTime $R_SETUP_DURATION)       |" >> report.md
         echo -e "| Installing different package versions | $(formatTime $VERSION_SETUP_DURATION) |" >> report.md
         echo -e "| Running and plotting the test cases   | $(formatTime $ATIME_TESTS_DURATION)   |" >> report.md
-        cml comment update report.md
+      shell: bash
+    
+    - name: Setup CML
+      if: inputs.pr-number != ''
+      uses: iterative/setup-cml@v2
+
+    - name: Push report as PR comment
+      if: inputs.pr-number != ''
+      env:
+        REPO_TOKEN: ${{ inputs.github-token }}
+      run: cml comment update report.md --target pr/${{ inputs.pr-number }}
+      shell: bash
+
+    - name: Log report to console
+      if: inputs.pr-number == ''
+      run: |
+        echo "## Atime Report (Manual Dispatch) ##"
+        cat report.md
       shell: bash
