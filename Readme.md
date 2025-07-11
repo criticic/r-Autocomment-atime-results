@@ -73,3 +73,29 @@ on:
     types: [opened, reopened, synchronize]
 ```
 When a commit is pushed to `main`, the workflow will run, install all dependencies, and save them to the cache. Subsequent PRs will then be able to download this cache, skipping the slow installation steps.
+
+### Cache Invalidation
+
+The cache is automatically invalidated when:
+
+- You modify the `DESCRIPTION` file of your R package.
+
+Also note [Github's Cache Usage limits and eviction policy](https://docs.github.com/en/actions/reference/dependency-caching-reference#usage-limits-and-eviction-policy), which states that GitHub will remove any cache entries that have not been accessed in over 7 days. There is no limit on the number of caches you can store, but the total size of all caches in a repository is limited to 10 GB. Once a repository has reached its maximum cache storage, the cache eviction policy will create space by deleting the caches in order of last access date, from oldest to most recent.
+
+### Manually clearing the cache
+
+If you need to clear the cache, you can do so in the Web UI by:
+
+1. Going to the "Actions" tab of your repository.
+2. Clicking on the "Caches" tab.
+3. Pressing the "Delete" button next to the cache you want to clear.
+
+Another way is to use the [Github CLI](https://cli.github.com/manual/gh_cache_delete):
+
+```bash
+# Delete a cache by id
+$ gh cache delete 1234
+
+# Delete a cache by key
+$ gh cache delete cache-key
+```
