@@ -1,6 +1,6 @@
 A GitHub Action for R packages that runs `atime::atime_pkg` and comments the generated results on pull requests to help identify potential performance regressions introduced from the incoming changes.
 
-This action now includes **caching** for R packages and system dependencies to significantly speed up subsequent workflow runs. Due to this, there are significant changes in how the action is used, as detailed [below](#caching).
+This action now incorporates caching for R packages and system dependencies to significantly speed up subsequent workflow runs. Consequently, there are notable changes in how the action is used, as detailed [below](#caching).
 
 Contents of the comment consist of:
 - A plot comparing different versions<sup>1</sup> of the package on all the test cases (portrayed side-by-side) that are defined in the `.ci/atime/tests.R` file within the respository. <sup>1</sup>Versions include base (the target branch), HEAD (the PR/source branch), merge-base (their common ancestor), and CRAN (yup, your package needs to be there :).
@@ -44,9 +44,9 @@ jobs:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 Emplace the contents in `.github/workflows/<workflowName>.yml`. The example above can be customized, but a few things are important for it to work correctly:
-- The workflow should run on a **`pull_request_target`** event. This allows the action to run in the context of the base repository, which is necessary for it to have permission to post comments securely.
-- The job needs the **`permissions: pull-requests: write`** block to grant it explicit permission to write comments.
-- The **`REPO_TOKEN`** input must be supplied with `${{ secrets.GITHUB_TOKEN }}`. This is required for the action to comment on the pull request.
+- The workflow should run on a `pull_request_target` event. This allows the action to run in the context of the base repository, which is necessary for it to have permission to post comments securely.
+- The job needs the `permissions: pull-requests: write` block to grant it explicit permission to write comments.
+- The `REPO_TOKEN` input must be supplied with `${{ secrets.GITHUB_TOKEN }}`. This is required for the action to comment on the pull request.
 
 ## Caching
 
@@ -78,7 +78,7 @@ When a commit is pushed to `main`, the workflow will run, install all dependenci
 
 The cache is automatically invalidated when:
 
-- You modify the `DESCRIPTION` file of your R package.
+- If the `DESCRIPTION` file of your R package is modified.
 
 Also note [Github's Cache Usage limits and eviction policy](https://docs.github.com/en/actions/reference/dependency-caching-reference#usage-limits-and-eviction-policy), which states that GitHub will remove any cache entries that have not been accessed in over 7 days. There is no limit on the number of caches you can store, but the total size of all caches in a repository is limited to 10 GB. Once a repository has reached its maximum cache storage, the cache eviction policy will create space by deleting the caches in order of last access date, from oldest to most recent.
 
