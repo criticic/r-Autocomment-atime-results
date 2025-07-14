@@ -64,12 +64,23 @@ runs:
       run: echo "R_LIB_PATH=$(Rscript -e 'cat(.libPaths()[1])')" >> $GITHUB_ENV
       shell: bash
 
+    - name: Create dependency hash file
+      run: |
+        Rscript -e '
+          desc_dcf <- read.dcf("DESCRIPTION")
+          dep_fields <- c("Imports", "Depends")
+          deps <- desc_dcf[, intersect(colnames(desc_dcf), dep_fields)]
+          # Sorting ensures the key is consistent regardless of field order
+          writeLines(paste(sort(deps), collapse = "\n"), ".github/r-deps-hash")
+        '
+      shell: bash
+
     - name: Cache R library
       id: cache-r-lib
       uses: actions/cache@v4
       with:
         path: ${{ env.R_LIB_PATH }}
-        key: r-lib-${{ runner.os }}-${{ hashFiles('DESCRIPTION') }}
+        key: r-lib-${{ runner.os }}-${{ hashFiles('.github/r-deps-hash', '.ci/atime/tests.R') }}
         restore-keys: |
           r-lib-${{ runner.os }}-
 
