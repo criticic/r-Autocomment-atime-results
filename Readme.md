@@ -81,7 +81,7 @@ The cache is automatically invalidated when:
 - The `.ci/atime/tests.R` file is modified
 - The `Imports` or `Depends` fields in the `DESCRIPTION` file are changed
 
-Also note [Github's Cache Usage limits and eviction policy](https://docs.github.com/en/actions/reference/dependency-caching-reference#usage-limits-and-eviction-policy), which states that GitHub will remove any cache entries that have not been accessed in over 7 days. There is no limit on the number of caches you can store, but the total size of all caches in a repository is limited to 10 GB. Once a repository has reached its maximum cache storage, the cache eviction policy will create space by deleting the caches in order of last access date, from oldest to most recent.
+Also note [Github's Cache Usage limits and eviction policy](https://docs.github.com/en/actions/reference/dependency-caching-reference#usage-limits-and-eviction-policy), which states that GitHub will remove any cache entries that have not been accessed in over 7 days. There is no limit on the number of caches one can store, but the total size of all caches in a repository is limited to 10 GB. Once a repository has reached its maximum cache storage, the cache eviction policy will create space by deleting the caches in order of last access date, from oldest to most recent.
 
 ### Manually clearing the cache
 
