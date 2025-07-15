@@ -43,7 +43,7 @@ jobs:
         with:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
-Emplace the contents in `.github/workflows/<workflowName>.yml`. The example above can be customized, but a few things are important for it to work correctly:
+Emplace the contents in `.github/workflows/<workflowName>.yml`. The example above can be customized further as needed, but a few key requirements must be met for it to function correctly:
 - The workflow should run on a `pull_request_target` event. This allows the action to run in the context of the base repository, which is necessary for it to have permission to post comments securely.
 - The job needs the `permissions: pull-requests: write` block to grant it explicit permission to write comments.
 - The `REPO_TOKEN` input must be supplied with `${{ secrets.GITHUB_TOKEN }}`. This is required for the action to comment on the pull request.
