@@ -55,20 +55,14 @@ This action automatically caches R packages and system dependencies (`libgit2`) 
 You can add a `push` or `workflow_dispatch` trigger to your workflow file like so:
 ```yml
 on:
-  # Run on pushes to the main branch to create/update the cache
   push:
     branches:
       - main
       - master
-    # Modify path filters as needed:
-    paths:
-      - 'R/**'
-      - 'src/**'
 
-  # For manual runs from the Github Web UI
+  # For manual runs from the GitHub Web UI:
   workflow_dispatch:
-  
-  # Keep the PR trigger
+
   pull_request_target:
     types: [opened, reopened, synchronize]
 ```
@@ -88,7 +82,7 @@ The cache is automatically invalidated when:
 - The `.ci/atime/tests.R` file is modified
 - The `Imports` or `Depends` fields in the `DESCRIPTION` file are changed
 
-Also note [Github's Cache Usage limits and eviction policy](https://docs.github.com/en/actions/reference/dependency-caching-reference#usage-limits-and-eviction-policy), which states that GitHub will remove any cache entries that have not been accessed in over 7 days. There is no limit on the number of caches one can store, but the total size of all caches in a repository is limited to 10 GB. Once a repository has reached its maximum cache storage, the cache eviction policy will create space by deleting the caches in order of last access date, from oldest to most recent.
+Also note [GitHub's Cache Usage limits and eviction policy](https://docs.github.com/en/actions/reference/dependency-caching-reference#usage-limits-and-eviction-policy), which states that GitHub will remove any cache entries that have not been accessed in over 7 days. There is no limit on the number of caches one can store, but the total size of all caches in a repository is limited to 10 GB. Once a repository has reached its maximum cache storage, the cache eviction policy will create space by deleting the caches in order of last access date, from oldest to most recent.
 
 ### Manually clearing the cache
 
@@ -98,7 +92,7 @@ If you need to clear the cache, you can do so in the Web UI by:
 2. Clicking on the "Caches" tab.
 3. Pressing the "Delete" button next to the cache you want to clear.
 
-Another way is to use the [Github CLI](https://cli.github.com/manual/gh_cache_delete):
+Another way is to use the [GitHub CLI](https://cli.github.com/manual/gh_cache_delete):
 
 ```bash
 # Delete a cache by id
