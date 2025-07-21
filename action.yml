@@ -5,6 +5,11 @@ branding:
   icon: 'message-square'
   color: 'gray-dark'
 
+inputs:
+  REPO_TOKEN:
+    description: 'GitHub token with write permissions to the repository'
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -17,6 +22,25 @@ runs:
       with:
         fetch-depth: 0
 
+    # If not a PR, compare HEAD with parent commit. This allows the action to run on push, workflow_dispatch, etc., so main branch runs can cache packages for PRs (since cache is not shared across PRs, but is accessible from the base branch).
+    - name: Determine refs and PR number
+      id: prepare-inputs
+      shell: bash
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" || "${{ github.event_name }}" == "pull_request_target" ]]; then
+          echo "Trigger is a Pull Request. Using PR context."
+          echo "BASE_REF=${{ github.base_ref }}" >> $GITHUB_ENV
+          echo "HEAD_REF=${{ github.head_ref }}" >> $GITHUB_ENV
+          echo "HEAD_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+          echo "PR_NUMBER=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+        else
+          echo "Trigger is not a Pull Request. Comparing HEAD vs. parent."
+          echo "BASE_REF=$(git rev-parse HEAD~1)" >> $GITHUB_ENV
+          echo "HEAD_REF=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          echo "HEAD_SHA=${{ github.sha }}" >> $GITHUB_ENV
+          echo "PR_NUMBER=" >> $GITHUB_ENV
+        fi
+
     - name: Safe directory exception
       run: |
         git config --global --add safe.directory '*'
@@ -24,9 +48,10 @@ runs:
 
     # To ensure local branch references exist and can be found when using git2r::revparse_single: (for more information, please check https://github.com/Anirban166/Autocomment-atime-results/issues/33#issuecomment-2038431272 and the comments below that)
     - name: Retrieve branch references
+      if: inputs.pr-number != ''
       run: |
-        git switch "${GITHUB_BASE_REF}"
-        git switch "${GITHUB_HEAD_REF}"
+        git switch "${{ env.BASE_REF }}"
+        git switch "${{ env.HEAD_REF }}"
       shell: bash
 
     - name: R Setup
@@ -34,24 +59,72 @@ runs:
       with:
         use-public-rspm: true 
 
-    - name: Install R packages (DESCRIPTION-specified deps)
-      uses: r-lib/actions/setup-r-dependencies@v2
+    - name: Get R library path
+      id: get-r-lib-path
+      run: echo "R_LIB_PATH=$(Rscript -e 'cat(.libPaths()[1])')" >> $GITHUB_ENV
+      shell: bash
 
+    - name: Create dependency hash file
+      run: |
+        Rscript -e '
+          desc_dcf <- read.dcf("DESCRIPTION")
+          dep_fields <- c("Imports", "Depends")
+          deps <- desc_dcf[, intersect(colnames(desc_dcf), dep_fields)]
+          # Sorting ensures the key is consistent regardless of field order
+          writeLines(paste(sort(deps), collapse = "\n"), ".github/r-deps-hash")
+        '
+      shell: bash
+
+    - name: Cache R library
+      id: cache-r-lib
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.R_LIB_PATH }}
+        key: r-lib-${{ runner.os }}-${{ hashFiles('.github/r-deps-hash', '.ci/atime/tests.R') }}
+        restore-keys: |
+          r-lib-${{ runner.os }}-
+
+    - name: Install R packages (DESCRIPTION-specified deps)
+      if: steps.cache-r-lib.outputs.cache-hit != 'true'
+      uses: r-lib/actions/setup-r-dependencies@v2
+      with:
+        cache: false
+        dependencies: '"hard"'
+        extra-packages: |
+          atime
+          ggplot2
+          directlabels
+          
+    - name: Set libgit2 install path
+      run: echo "LIBGIT2_INSTALL_DIR=$HOME/libgit2-install" >> $GITHUB_ENV
+      shell: bash
+    - name: Cache libgit2
+      id: cache-libgit2
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.LIBGIT2_INSTALL_DIR }}
+        key: libgit2-${{ runner.os }}-v1.7.2
     - name: Set up the required system dependency libgit2
+      if: steps.cache-libgit2.outputs.cache-hit != 'true'
       run: |
         sudo apt-get update -y && sudo apt-get install -y cmake libssl-dev
-        git clone --branch v1.6.4 --depth 1 https://github.com/libgit2/libgit2.git
+        git clone --branch v1.7.2 --depth 1 https://github.com/libgit2/libgit2.git
         cd libgit2 && mkdir build && cd build
-        cmake .. -DCMAKE_INSTALL_PREFIX=/usr
-        make && sudo make install
+        cmake .. -DCMAKE_INSTALL_PREFIX=$LIBGIT2_INSTALL_DIR
+        make && make install
         cd ../..
       shell: bash
 
-    - name: Install required dependencies and initiate atime magic
+    - name: Setup libgit2 environment
       run: |
-        cp /github/home/.Rprofile .
-        echo "options(repos = c(CRAN = 'https://cloud.r-project.org'))" >> .Rprofile
-        Rscript -e 'install.packages(c("atime", "ggplot2", "directlabels"))'
+        echo "PKG_CONFIG_PATH=$LIBGIT2_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=$LIBGIT2_INSTALL_DIR/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Run atime tests
+      run: |
+        mkdir -p ~/.R
+        echo "CFLAGS = -std=gnu99" >> ~/.R/Makevars
         echo "END_SETUP_START_TESTS_TIME=$(date +%s)" >> $GITHUB_ENV
         Rscript -e 'atime::atime_pkg(Sys.getenv("GITHUB_WORKSPACE"), tests.dir = ".ci");'
         echo "END_TESTS_TIME=$(date +%s)" >> $GITHUB_ENV
@@ -64,7 +137,14 @@ runs:
         name: atime-results
         path: .ci/atime/
 
+    - name: Setup CML
+      if: env.PR_NUMBER != ''
+      uses: iterative/setup-cml@v2
+
     - name: Push generated plot along with relevant information on the PR thread as a GH-bot comment
+      shell: bash
+      env:
+        REPO_TOKEN: ${{ inputs.REPO_TOKEN }}
       run: |
         R_SETUP_DURATION=$((END_SETUP_START_TESTS_TIME - START_SETUP_TIME))
         VERSION_SETUP_DURATION=$(cut -d '.' -f 1 ./.ci/atime/install_seconds.txt)
@@ -88,12 +168,17 @@ runs:
         # Comment contents:
         cat .ci/atime/HEAD_issues.md >> report.md
         echo -e "\n[![Comparison Plot](./.ci/atime/tests_preview_facet.png)](./.ci/atime/tests_all_facet.png)" >> report.md
-        echo -e "\nGenerated via commit ${{ github.event.pull_request.head.sha }}" >> report.md
+        echo -e "\nGenerated via commit ${{ env.HEAD_SHA }}" >> report.md
         echo -e "\nDownload link for the artifact containing the test results: [↓ atime-results.zip](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts/${{ steps.artifact-upload-step.outputs.artifact-id }})" >> report.md
         echo -e "\n| Task | Duration |" >> report.md
         echo -e "|---|---|" >> report.md
         echo -e "| R setup and installing dependencies   | $(formatTime $R_SETUP_DURATION)       |" >> report.md
         echo -e "| Installing different package versions | $(formatTime $VERSION_SETUP_DURATION) |" >> report.md
         echo -e "| Running and plotting the test cases   | $(formatTime $ATIME_TESTS_DURATION)   |" >> report.md
-        cml comment update report.md
-      shell: bash
+
+        if [[ -n "${{ env.PR_NUMBER }}" ]]; then
+          cml comment update report.md
+        else
+          echo "Not a PR. Skipping comment."
+          cat report.md
+        fi
