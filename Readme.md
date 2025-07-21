@@ -72,7 +72,14 @@ on:
   pull_request_target:
     types: [opened, reopened, synchronize]
 ```
-When a commit is pushed to `main`, the workflow will run, install all dependencies, and save them to the cache. Subsequent PRs will then be able to download this cache, skipping the slow installation steps.
+When the workflow runs on the base branch for the first time, it will install all dependencies and save them to the cache. Specifically, the cache includes:
+
+- The entire R library path (`.libPaths()[1]`), which contains:
+  - Historical versions of the target R package being tested
+  - Dependencies such as `atime`, `ggplot2`, and `directlabels`
+- The built `libgit2` library, which is a dependency of the `git2r` package, required by `atime`
+
+Subsequent PRs will then be able to download this cache, skipping the slow installation steps for both the dependencies and the historical versions of the target package.
 
 ### Cache Invalidation
 
