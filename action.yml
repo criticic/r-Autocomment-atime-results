@@ -136,6 +136,13 @@ runs:
       with:
         name: atime-results
         path: .ci/atime/
+    
+    - name: Upload package cache as artifact
+      id: cache-artifact-upload-step
+      uses: actions/upload-artifact@v4
+      with:
+        name: r-lib
+        path: ${{ env.R_LIB_PATH }}
 
     - name: Setup CML
       if: env.PR_NUMBER != ''
